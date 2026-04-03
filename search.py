@@ -205,8 +205,52 @@ def nullHeuristic(state, problem=None) -> float:
 
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directions]:
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Initialize the fringe with the start state using a priority queue
+    # Priority is based on f(n) = g(n) + h(n)
+    # where g(n) is the actual cost to reach the node
+    # and h(n) is the heuristic estimate to the goal
+    fringe = util.PriorityQueue()
+    start_state = problem.getStartState()
+    h_start = heuristic(start_state, problem)
+    fringe.push((start_state, []), h_start)  # (state, actions), priority = 0 + h(start)
+    
+    # Track the best known cost to each state
+    best_costs = {start_state: 0}
+    
+    while not fringe.isEmpty():
+        # Pop the lowest f(n) node from the fringe
+        state, actions = fringe.pop()
+        
+        # Get the actual cost of reaching this state
+        current_cost = problem.getCostOfActions(actions)
+        
+        # If we've already found a better path to this state, skip it
+        if current_cost > best_costs.get(state, float('inf')):
+            continue
+        
+        # Check if this is the goal state
+        if problem.isGoalState(state):
+            return actions
+        
+        # Expand the state by getting its successors
+        for successor_state, action, step_cost in problem.getSuccessors(state):
+            # Build the new action sequence
+            new_actions = actions + [action]
+            # Calculate the actual cost of the new path
+            new_cost = problem.getCostOfActions(new_actions)
+            
+            # Check if we've found a better path to this successor
+            if new_cost < best_costs.get(successor_state, float('inf')):
+                # Update the best known cost
+                best_costs[successor_state] = new_cost
+                # Calculate f(n) = g(n) + h(n)
+                h_successor = heuristic(successor_state, problem)
+                f_successor = new_cost + h_successor
+                # Add successor to fringe with f(n) as priority
+                fringe.push((successor_state, new_actions), f_successor)
+    
+    # No solution found
+    return []
 
 # Abbreviations
 bfs = breadthFirstSearch
