@@ -390,15 +390,47 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     if not unvisited_corners:
         return 0
     
-    # Use Manhattan distance to the farthest unvisited corner as a lower bound
-    # This is admissible because we must visit all unvisited corners,
-    # and the Manhattan distance is a lower bound on the actual distance
-    max_distance = 0
-    for corner in unvisited_corners:
-        distance = abs(position[0] - corner[0]) + abs(position[1] - corner[1])
-        max_distance = max(max_distance, distance)
+    def manhattan(p1, p2):
+        """Calculate Manhattan distance between two points"""
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
     
-    return max_distance
+    # If only one unvisited corner, return distance to it
+    if len(unvisited_corners) == 1:
+        return manhattan(position, unvisited_corners[0])
+    
+    # Distance from current position to the closest unvisited corner
+    min_dist_to_corner = min(manhattan(position, corner) for corner in unvisited_corners)
+    
+    # Compute the Minimum Spanning Tree (MST) of unvisited corners
+    # using Prim's algorithm starting from the closest corner to current position
+    closest_corner = min(unvisited_corners, key=lambda c: manhattan(position, c))
+    
+    visited_in_mst = {closest_corner}
+    mst_cost = 0
+    unvisited_set = set(unvisited_corners) - {closest_corner}
+    
+    # Build MST using Prim's algorithm
+    while unvisited_set:
+        # Find the minimum distance edge from visited to unvisited vertices
+        min_edge_cost = float('inf')
+        nearest_corner = None
+        
+        for unvisited_corner in unvisited_set:
+            for visited_corner in visited_in_mst:
+                edge_cost = manhattan(unvisited_corner, visited_corner)
+                if edge_cost < min_edge_cost:
+                    min_edge_cost = edge_cost
+                    nearest_corner = unvisited_corner
+        
+        # Add the nearest corner to MST
+        mst_cost += min_edge_cost
+        visited_in_mst.add(nearest_corner)
+        unvisited_set.remove(nearest_corner)
+    
+    # Return the sum of distance to closest corner + MST cost
+    # This is admissible because we must reach at least the closest corner
+    # and then connect to all others via some path (MST is a lower bound)
+    return min_dist_to_corner + mst_cost
 
 
 
