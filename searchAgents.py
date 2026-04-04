@@ -520,8 +520,58 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    
+    # Get remaining food items
+    remaining_food = foodGrid.asList()
+    
+    # If no food remaining, heuristic is 0 (goal state)
+    if not remaining_food:
+        return 0
+    
+    def manhattan(p1, p2):
+        """Calculate Manhattan distance between two points"""
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+    
+    # Find distance to closest food
+    min_dist_to_food = min(manhattan(position, food) for food in remaining_food)
+    
+    # If only one food item remains, return distance to it
+    if len(remaining_food) == 1:
+        return min_dist_to_food
+    
+    # Use cache for Minimum Spanning Tree computation if we have many food items
+    # For multiple food items, use MST as a lower bound on the cost to visit all
+    
+    # Build a Minimum Spanning Tree of all remaining food using Prim's algorithm
+    # Start from the closest food item to current position
+    closest_food = min(remaining_food, key=lambda f: manhattan(position, f))
+    
+    visited_food = {closest_food}
+    mst_cost = 0
+    unvisited_food = set(remaining_food) - {closest_food}
+    
+    # Build MST using Prim's algorithm
+    while unvisited_food:
+        # Find minimum distance edge from visited to unvisited food
+        min_edge_cost = float('inf')
+        nearest_food = None
+        
+        for unvisited in unvisited_food:
+            for visited in visited_food:
+                edge_cost = manhattan(unvisited, visited)
+                if edge_cost < min_edge_cost:
+                    min_edge_cost = edge_cost
+                    nearest_food = unvisited
+        
+        # Add nearest food to MST
+        mst_cost += min_edge_cost
+        visited_food.add(nearest_food)
+        unvisited_food.remove(nearest_food)
+    
+    # Return distance to closest food + MST cost of remaining food
+    # This is admissible because we must travel to the closest food,
+    # then visit all others (which requires at least the MST cost)
+    return min_dist_to_food + mst_cost
 
 
 class ClosestDotSearchAgent(SearchAgent):
